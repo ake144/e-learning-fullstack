@@ -1,0 +1,65 @@
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    container_name: elearning_db_dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      POSTGRES_DB: ${POSTGRES_DB:-elearning_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - elearning_network_dev
+
+  # NestJS backend (Development)
+  backend:
+    build:
+      context: ./backend/e-learning
+      dockerfile: Dockerfile.dev
+    container_name: elearning_backend_dev
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myuser}:${POSTGRES_PASSWORD:-mypassword}@db:5432/${POSTGRES_DB:-elearning_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+    volumes:
+      - ./backend/e-learning:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - elearning_network_dev
+
+  # Next.js frontend (Development)
+  frontend:
+    build:
+      context: ./E-learning-center
+      dockerfile: Dockerfile.dev
+    container_name: elearning_frontend_dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    volumes:
+      - ./E-learning-center:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - elearning_network_dev
+
+networks:
+  elearning_network_dev:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
