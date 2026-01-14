@@ -23,15 +23,29 @@ services:
     container_name: elearning_backend_dev
     ports:
       - "3001:3000"
+      - "5555:5555"
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-myuser}:${POSTGRES_PASSWORD:-mypassword}@db:5432/${POSTGRES_DB:-elearning_db}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+    env_file:
+      - .env
     volumes:
       - ./backend/e-learning:/usr/src/app
       - /usr/src/app/node_modules
+      - ./.env:/usr/src/app/.env
     depends_on:
       - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - elearning_network_dev
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: elearning_redis
+    ports:
+      - "6379:6379"
     restart: unless-stopped
     networks:
       - elearning_network_dev
@@ -47,6 +61,8 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3001
+    env_file:
+      - .env
     volumes:
       - ./E-learning-center:/app
       - /app/node_modules
